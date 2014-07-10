@@ -7,6 +7,7 @@ pom.xml.asc
 *.class
 /.lein-*
 /.nrepl-port
+.classpath
 .project
 .settings
 bower_components
