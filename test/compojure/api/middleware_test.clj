@@ -21,10 +21,12 @@
 (def edn-response?  (partial response-type? "application/edn; charset=utf-8"))
 
 (let [handler (mw/api-middleware (constantly (ok {:bar "bar"})))]
-  (tabular response-negotiation-with-defaults
+  (tabular response-negotiation
     (fact (handler (->req ?req-fmt ?accept)) => ?resp)
-    ?req-fmt ?accept                       ?resp
-    :json    nil                           json-response?
-    :json    "application/json"            json-response?
-    :edn     nil                           edn-response?
-    :edn     "application/json"            json-response?))
+    ?req-fmt  ?accept               ?resp
+    :json     nil                   json-response?
+    :json     "application/json"    json-response?
+    :edn      "application/json"    json-response?
+    :edn      nil                   edn-response?
+    :edn      "application/edn"     edn-response?
+    :json     "application/edn"     edn-response?))
