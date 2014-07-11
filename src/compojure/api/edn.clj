@@ -50,11 +50,11 @@
       (content-type "application/edn; charset=utf-8")
       (update-in [:body] pr-str)))
 
-(defn edn-response-support [handler {:keys [default-format?]}]
+(defn edn-response-support [handler _]
   (fn [request]
     (let [request  (update-in request [:meta :produces] conj edn-mime)
           response (handler request)]
-      (if (and (rn/should-response-in? edn-mime request default-format?)
+      (if (and (rn/should-response-in? edn-mime request)
                (serializable? response))
         (->edn-response response)
         response))))

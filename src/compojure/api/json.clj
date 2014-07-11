@@ -63,11 +63,11 @@
                  (instance? java.io.File body)
                  (instance? java.io.InputStream body)))))))
 
-(defn json-response-support [handler {:keys [default-format?]}]
+(defn json-response-support [handler _]
   (fn [request]
     (let [request  (update-in request [:meta :produces] conj json-mime)
           response (handler request)]
-      (if (and (rn/should-response-in? json-mime request default-format?)
+      (if (and (rn/should-response-in? json-mime request)
                (serializable? response))
         (->json-response response)
         response))))

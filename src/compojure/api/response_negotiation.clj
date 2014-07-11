@@ -30,15 +30,27 @@
          (sort-by first >)
          (map second))))
 
+(defn response-format
+  "Decide what format the reply should be in. See documentation
+   for 'should-response-in?' function for detauils."
+  [request]
+  (let [accept       (-> request (get-in [:headers "accept"]))
+        content-type (-> request :content-type)
+        produces     (-> request (get-in [:meta :produces]) set)]
+    (cond
+      (not (s/blank? accept))   (some produces (accepts-in-pref-order accept))
+      (produces content-type)   content-type
+      :else                     (first produces))))
+
 (defn should-response-in?
   "Determined is the response should be formatted in 'offer-format' format.
    Parameters:
-     offer-format:     mime-type caller offers, forexample \"application/json\"
+     offer-format:     mime-type caller can produce, forexample \"application/json\"
      request:          HTTP request
-     default-format?:  true if caller is the default (used when Accept is missing)
-   Returns true if response should be formatted to 'offer-format'."
-  [offer-format request default-format?]
-  (let [accept   (-> request (get-in [:headers "accept"]))
-        produces (-> request (get-in [:meta :produces]) set)]
-    (or (and (s/blank? accept) default-format?) 
-        (= offer-format (some produces (accepts-in-pref-order accept))))))
+   Returns true if response should be formatted to 'offer-format'.
+   The decision for response format is done as follows:
+     1) If request has Accept header, respect that
+     2) If request has Content-Type, use that
+     3) Of what ever for"
+  [offer-format request]
+  (= offer-format (response-format request)))
