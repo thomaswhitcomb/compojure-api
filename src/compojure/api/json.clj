@@ -4,8 +4,12 @@
   (:require [ring.util.http-response :refer [content-type bad-request]]
             [cheshire.core :as cheshire]
             [clojure.walk16 :as walk]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.string :as s]
+            [compojure.api.response-negotiation :as rn])
   (:import [com.fasterxml.jackson.core JsonParseException]))
+
+(def json-mime "application/json")
 
 ;; JSON standard date format according to
 ;; http://stackoverflow.com/questions/10286204/the-right-json-date-format
@@ -26,8 +30,7 @@
     content-type
     (not (empty? (re-find #"^application/(vnd.+)?json" content-type)))))
 
-(defn json-request-support
-  [handler & [{:keys [keywords?] :or {keywords? true}}]]
+(defn json-request-support [handler {:keys [keywords?] :or {keywords? true}}]
   (fn [{:keys [character-encoding content-type body] :as request}]
     (try
       (let [request (if-not (and body (json-request? request))
@@ -43,15 +46,15 @@
                                         (assoc :json-params json)
                                         (update-in [:params] merge json))
                           :else request)))
-            request (update-in request [:meta :consumes] concat ["application/json"])]
+            request (update-in request [:meta :consumes] conj json-mime)]
         (handler request))
       (catch JsonParseException jpe
         (->json-response (bad-request {:type "json-parse-exception"
                                        :message (.getMessage jpe)}))))))
 
-(defn serializable?
-  "Predicate that returns true whenever the response body is serializable."
-  [_ {:keys [body] :as response}]
+(defn- serializable?
+  "Predicate that returns true whenever the response body is JSON serializable."
+  [{:keys [body] :as response}]
   (when response
     (or (coll? body)
         (and (:compojure.api.meta/serializable? response)
@@ -60,15 +63,16 @@
                  (instance? java.io.File body)
                  (instance? java.io.InputStream body)))))))
 
-(defn json-response-support
-  [handler]
+(defn json-response-support [handler {:keys [default-format?]}]
   (fn [request]
-    (let [request (update-in request [:meta :produces] concat ["application/json"])]
-      (let [response (handler request)]
-        (if (serializable? request response)
-          (->json-response response)
-          response)))))
+    (let [request  (update-in request [:meta :produces] conj json-mime)
+          response (handler request)]
+      (if (and (rn/should-response-in? json-mime request default-format?)
+               (serializable? response))
+        (->json-response response)
+        response))))
 
-(defn json-support
-  [handler]
-  (-> handler json-response-support json-request-support))
+(defn json-support [handler & [opts]]
+  (-> handler
+      (json-response-support opts)
+      (json-request-support opts)))

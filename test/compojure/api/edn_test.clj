@@ -10,7 +10,8 @@
 
 (defn edn-request [s]
   {:content-type "application/edn"
-   :body (stream s)})
+   :body (stream s)
+   :headers {"accept" "application/edn"}})
 
 (def with-edn-support (edn-support identity))
 
@@ -28,7 +29,7 @@
 
      (fact edn-list
        (let [request (with-edn-support (edn-request "[1 2 3]"))]
-         (:body request)         => "[1 2 3]\n"
+         (:body request)         => "[1 2 3]"
          (:body-params request)  => [1 2 3]
          (:edn-params request)   => [1 2 3]
          (:json-params request)  => nil
@@ -36,21 +37,21 @@
 
      (fact edn-map-with-defaults
        (let [request (with-edn-support (edn-request "{\"a\" 1 :b \"value\"}"))]
-         (:body request)         => "{:a 1, :b \"value\"}\n"
+         (:body request)         => "{:a 1, :b \"value\"}"
          (:body-params request)  => {:a 1 :b "value"}
          (:edn-params request)   => {:a 1 :b "value"}
          (:params request)       => {:a 1 :b "value"}))
      
      (fact edn-map-with-np-keywords?
        (let [request ((edn-support identity {:keywords? false}) (edn-request "{\"a\" 1 :b \"value\"}"))]
-         (:body request)         => "{\"a\" 1, :b \"value\"}\n"
+         (:body request)         => "{\"a\" 1, :b \"value\"}"
          (:body-params request)  => {"a" 1 :b "value"}
          (:edn-params request)   => {"a" 1 :b "value"}
          (:params request)       => {"a" 1 :b "value"}))
 
      (fact edn-primitive
        (let [request (with-edn-support (edn-request "true"))]
-         (:body request)         => "true\n"
+         (:body request)         => "true"
          (:body-params request)  => true
          (:edn-params request)   => true
          (:params request)       => nil))

@@ -83,19 +83,19 @@
           (middlewares [(middleware* 3) (middleware* 4)]
             (GET* "/nested" req (reply-mw* req))
             (GET* "/nested-declared" req
-              :middlewares [(middleware* 5) (middleware* 6)]
-              (reply-mw* req)))))))
-
+                  :middlewares [(middleware* 5) (middleware* 6)]
+                  (reply-mw* req)))))))
+  
   (fact "are applied left-to-right"
     (let [[status body headers] (get* api "/middlewares/simple" {})]
       status => 200
       (get headers mw*) => "12721"))
-
+  
   (fact "are applied left-to-right closest one first"
     (let [[status body headers] (get* api "/middlewares/nested" {})]
       status => 200
       (get headers mw*) => "123474321"))
-
+  
   (fact "are applied left-to-right for both nested & declared cloest one first"
     (let [[status body headers] (get* api "/middlewares/nested-declared" {})]
       status => 200
@@ -407,8 +407,8 @@
                :resourcePath ""
                :models {}
                :basePath "http://localhost"
-               :consumes ["application/edn" "application/json"]
-               :produces ["application/edn" "application/json"]
+               :consumes ["application/json" "application/edn"]
+               :produces ["application/json" "application/edn"]
                :apis [{:operations [{:method "GET"
                                      :nickname "getUser"
                                      :notes ""

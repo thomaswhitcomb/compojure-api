@@ -44,13 +44,13 @@
 
 (defn api-middleware
   "opinionated chain of middlewares for web apis."
-  [handler]
+  [handler & [{:keys [default-response-format] :or {default-response-format :json} :as opts}]]
   (-> handler
       ring.middleware.http-response/catch-response
       ring.swagger.middleware/catch-validation-errors
       ex-info-support
-      json-support
-      edn-support
+      (json-support (assoc opts :default-format? (= default-response-format :json)))
+      (edn-support  (assoc opts :default-format? (= default-response-format :edn)))
       wrap-keyword-params
       wrap-nested-params
       wrap-params))

@@ -2,7 +2,10 @@
   (:require [ring.util.http-response :refer [content-type bad-request!]]
             [clojure.walk :refer [keywordize-keys]]
             [clojure.java.io :as io]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [compojure.api.response-negotiation :as rn]))
+
+(def edn-mime "application/edn")
 
 (defn edn-request?
   "Checks from request content-type weather it's EDN."
@@ -32,30 +35,27 @@
                         (if (map? edn)
                           (update-in request [:params] merge edn)
                           request)))
-            request (update-in request [:meta :consumes] concat ["application/edn"])]
+            request (update-in request [:meta :consumes] conj edn-mime)]
         (handler request)))))
 
-(defn serializable?
-  "Predicate that returns true whenever the response body is serializable."
+(defn- serializable?
+  "Predicate that returns true whenever the response body is EDN serializable."
   [{:keys [body] :as response}]
-  (when response
-    (not (or
-           (instance? java.io.File body)
-           (instance? java.io.InputStream body)))))
-
-(defn ->edn [x]
-  (prn-str x))
+  (and response
+       (not (instance? java.io.File body))
+       (not (instance? java.io.InputStream body))))
 
 (defn ->edn-response [response]
   (-> response
       (content-type "application/edn; charset=utf-8")
-      (update-in [:body] ->edn)))
+      (update-in [:body] pr-str)))
 
-(defn edn-response-support [handler opts]
+(defn edn-response-support [handler {:keys [default-format?]}]
   (fn [request]
-    (let [request  (update-in request [:meta :produces] concat ["application/edn"])
+    (let [request  (update-in request [:meta :produces] conj edn-mime)
           response (handler request)]
-      (if false #_(serializable? response)
+      (if (and (rn/should-response-in? edn-mime request default-format?)
+               (serializable? response))
         (->edn-response response)
         response))))
 
