@@ -407,8 +407,8 @@
                :resourcePath ""
                :models {}
                :basePath "http://localhost"
-               :consumes ["application/json"]
-               :produces ["application/json"]
+               :consumes ["application/edn" "application/json"]
+               :produces ["application/edn" "application/json"]
                :apis [{:operations [{:method "GET"
                                      :nickname "getUser"
                                      :notes ""

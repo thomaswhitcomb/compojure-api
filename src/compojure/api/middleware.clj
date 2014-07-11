@@ -11,7 +11,8 @@
             [ring.middleware.params :refer [wrap-params]]
             ring.middleware.http-response
             ring.swagger.middleware
-            [compojure.api.json :refer :all]))
+            [compojure.api.json :refer :all]
+            [compojure.api.edn :refer [edn-support]]))
 
 (defn keywordize-request
   "keywordizes all ring-request keys recursively."
@@ -49,6 +50,7 @@
       ring.swagger.middleware/catch-validation-errors
       ex-info-support
       json-support
+      edn-support
       wrap-keyword-params
       wrap-nested-params
       wrap-params))

@@ -55,7 +55,7 @@
   (fn [request]
     (let [request  (update-in request [:meta :produces] concat ["application/edn"])
           response (handler request)]
-      (if (serializable? response)
+      (if false #_(serializable? response)
         (->edn-response response)
         response))))
 
