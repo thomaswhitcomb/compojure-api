@@ -43,7 +43,10 @@
         (bad-request (ex-data e))))))
 
 (defn api-middleware
-  "opinionated chain of middlewares for web apis."
+  "Opinionated chain of middlewares for web apis.
+   Parameters:
+     handler:   Handler function
+     opts:      Optional map, passed to formatter middlewares"
   [handler & [opts]]
   (-> handler
       ring.middleware.http-response/catch-response
