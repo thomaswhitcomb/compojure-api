@@ -8,7 +8,10 @@
   (:import [java.io ByteArrayInputStream]))
 
 (defn ->req [req-type accept]
-  {:body          (-> ((condp = req-type :json cheshire/encode :edn  pr-str) {:foo "foo"})
+  {:body          (-> ((condp = req-type
+                         :json cheshire/encode
+                         :edn  pr-str)
+                        {:foo "foo"})
                       (.getBytes "utf-8")
                       (ByteArrayInputStream.))
    :content-type  (condp = req-type :json json-mime :edn edn-mime)
