@@ -448,9 +448,7 @@ macroexpanding-1 it too see what's get generated:
 
 ### Choosing response format
 
-Response format can be specified by setting the [HTTP Accept](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1) header in the request.
-
-If HTTP Accept header is not present, the response will be formatted using the same format as the request body, as specified by the [HTTP Content-Type](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17) header.
+Response format can be specified by setting the [HTTP Accept](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1) header in the request. If HTTP Accept header is not present, the response will be formatted using the same format as the request body, as specified by the [HTTP Content-Type](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17) header.
 
 If both Accept and Content-Type headers are missing, the response will be formatted by first formatting middleware.
 
