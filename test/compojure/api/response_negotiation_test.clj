@@ -44,6 +44,8 @@
   json-mime       ..anything..       [json-mime edn-mime]     json-mime
   nil             json-mime          [json-mime edn-mime]     json-mime
   nil             nil                [json-mime edn-mime]     json-mime
+  "*/*"           json-mime          [json-mime edn-mime]     json-mime
+  "*/*"           nil                [json-mime edn-mime]     json-mime
   edn-mime        json-mime          [json-mime edn-mime]     edn-mime)
 
 (fact should-response-in?

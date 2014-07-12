@@ -30,6 +30,9 @@
          (sort-by first >)
          (map second))))
 
+(defn- blank-accept? [accept]
+  (or (s/blank? accept) (= accept "*/*")))
+
 (defn response-format
   "Decide what format the reply should be in. See documentation
    for 'should-response-in?' function for detauils."
@@ -38,9 +41,9 @@
         content-type (-> request :content-type)
         produces     (-> request (get-in [:meta :produces]) set)]
     (cond
-      (not (s/blank? accept))   (some produces (accepts-in-pref-order accept))
-      (produces content-type)   content-type
-      :else                     (first produces))))
+      (not (blank-accept? accept))  (some produces (accepts-in-pref-order accept))
+      (produces content-type)       content-type
+      :else                         (first produces))))
 
 (defn should-response-in?
   "Determined is the response should be formatted in 'offer-format' format.
