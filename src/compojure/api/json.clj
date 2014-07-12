@@ -37,14 +37,14 @@
                       request
                       (let [json (cheshire/parse-stream (io/reader body :encoding (or character-encoding "utf-8")) keywords?)]
                         (cond
-                          (sequential? json) (-> request
-                                               (assoc :body (vec json))
-                                               (assoc :body-params (vec json)))
+                          (sequential? json) (assoc request
+                                                    :body (vec json)
+                                                    :body-params (vec json))
                           (map? json) (-> request
-                                        (assoc :body json)
-                                        (assoc :body-params json)
-                                        (assoc :json-params json)
-                                        (update-in [:params] merge json))
+                                          (assoc :body json
+                                                 :body-params json
+                                                 :json-params json)
+                                          (update-in [:params] merge json))
                           :else request)))
             request (update-in request [:meta :consumes] conj json-mime)]
         (handler request))
