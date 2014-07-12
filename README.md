@@ -116,7 +116,8 @@ There is pre-packaged middleware `compojure.api.middleware/api-middleware` for c
 
 - catching slinghotted http-errors (`ring.middleware.http-response/catch-response`)
 - catching model validation errors (`ring.swagger.middleware/catch-validation-errors`)
-- json request & response parsing (`compojure.api.json/json-support`)
+- JSON request & response parsing (`compojure.api.json/json-support`)
+- EDN request & response parsing (`compojure.api.json/edn-support`)
 
 ### Mounting middlewares
 
@@ -444,6 +445,22 @@ macroexpanding-1 it too see what's get generated:
   - there is basically no runtime penalty for describing your apis
   - all runtime code between route-macros are ignored when macro-peeling route-trees. See [tests](https://github.com/metosin/compojure-api/blob/master/test/compojure/api/swagger_test.clj)
   - `swaggered` peels the macros until it reaches `compojure.core` Vars. You can write your own DSL-macros on top of those
+
+### Choosing response format
+
+Response format can be specified by setting the [HTTP Accept](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.1) header in the request.
+
+If HTTP Accept header is not present, the response will be formatted using the same format as the request body, as specified by the [HTTP Content-Type](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17) header.
+
+If both Accept and Content-Type headers are missing, the response will be formatted by first formatting middleware.
+
+So the order for determining the response format is:
+
+1. HTTP Accept header
+2. HTTP Content-Type header
+3. First formatter middleware
+
+The content negotiation code is in `compojure.api.response-negotiation` and the tests for it are in `compojure.api.response-negotiation-test`.
 
 ## Roadmap
 
