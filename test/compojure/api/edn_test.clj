@@ -1,7 +1,8 @@
 (ns compojure.api.edn-test
-  (:require [midje.sweet :refer :all]
-            [ring.util.http-response :refer [ok]]
+  (:require [clojure.string :as s]
             [clojure.java.io :as io]
+            [ring.util.http-response :refer [ok]]
+            [midje.sweet :refer :all]
             [compojure.api.edn :refer :all])
   (:import [java.io ByteArrayInputStream]))
 
@@ -35,15 +36,8 @@
          (:json-params request)  => nil
          (:params request)       => nil))
 
-     (fact edn-map-with-defaults
+     (fact edn-map
        (let [request (with-edn-support (edn-request "{\"a\" 1 :b \"value\"}"))]
-         (:body request)         => "{:a 1, :b \"value\"}"
-         (:body-params request)  => {:a 1 :b "value"}
-         (:edn-params request)   => {:a 1 :b "value"}
-         (:params request)       => {:a 1 :b "value"}))
-     
-     (fact edn-map-with-np-keywords?
-       (let [request ((edn-support identity {:keywords? false}) (edn-request "{\"a\" 1 :b \"value\"}"))]
          (:body request)         => "{\"a\" 1, :b \"value\"}"
          (:body-params request)  => {"a" 1 :b "value"}
          (:edn-params request)   => {"a" 1 :b "value"}
@@ -55,8 +49,15 @@
          (:body-params request)  => true
          (:edn-params request)   => true
          (:params request)       => nil))
-     
+
      (fact edn-capability
        (let [request (with-edn-support (edn-request "true" ))]
          (-> request :meta :consumes) => ["application/edn"]
-         (-> request :meta :produces) => ["application/edn"]))))
+         (-> request :meta :produces) => ["application/edn"]))
+
+     (fact edn-opts
+       (let [edn-opts {:edn-opts {:readers {'uc s/upper-case}}}]
+         (-> (edn-request "#uc foo")
+             ((edn-support identity edn-opts))
+             :edn-params)
+         => "FOO"))))

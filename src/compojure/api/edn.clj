@@ -14,29 +14,26 @@
     content-type
     (not (empty? (re-matches #"application/(vnd.+)?edn" content-type)))))
 
-(defn read-edn-body [body encoding]
+(defn read-edn-body [body encoding opts]
   (try
     (with-open [in (-> body (io/reader :encoding encoding) (java.io.PushbackReader.))]
-      (edn/read in))
+      (edn/read opts in))
     (catch RuntimeException e
       (bad-request! {:type "edn-parse-exception" :message (.getMessage e)}))))
 
-(defn edn-request-support [handler {:keys [keywords?] :or {keywords? true}}]
-  (let [post-walk (if keywords? keywordize-keys identity)]
-    (fn [{:keys [character-encoding content-type body] :as request}]
-      (let [request (if-not (and body (edn-request? request))
-                      request
-                      (let [edn (-> body
-                                    (read-edn-body (or character-encoding "utf-8"))
-                                    (post-walk))
-                            request (assoc request :body        edn
-                                                   :body-params edn
-                                                   :edn-params  edn)]
-                        (if (map? edn)
-                          (update-in request [:params] merge edn)
-                          request)))
-            request (update-in request [:meta :consumes] conj edn-mime)]
-        (handler request)))))
+(defn edn-request-support [handler {edn-opts :edn-opts :or {edn-opts {}}}]
+  (fn [{:keys [character-encoding content-type body] :as request}]
+    (let [request (if-not (and body (edn-request? request))
+                    request
+                    (let [edn (read-edn-body body (or character-encoding "utf-8") edn-opts)
+                          request (assoc request :body        edn
+                                                 :body-params edn
+                                                 :edn-params  edn)]
+                      (if (map? edn)
+                        (update-in request [:params] merge edn)
+                        request)))
+          request (update-in request [:meta :consumes] conj edn-mime)]
+      (handler request))))
 
 (defn- serializable?
   "Predicate that returns true whenever the response body is EDN serializable."
