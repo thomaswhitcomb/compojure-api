@@ -9,9 +9,9 @@
                  [prismatic/plumbing "0.3.3"]
                  [potemkin "0.3.4"]
                  [cheshire "5.3.1"]
-                 [compojure "1.1.8" :exclusions [ring/ring-core]]
+                 [compojure "1.1.8"]
                  [prismatic/schema "0.2.4"]
-                 [metosin/ring-http-response "0.4.0" :exclusions [camel-snake-kebab ring/ring-core]]
+                 [metosin/ring-http-response "0.4.0"]
                  [metosin/ring-swagger "0.10.6"]]
   :profiles {:thingie {:ring {:handler examples.thingie/app
                               :reload-paths ["src" "examples/src"]}
