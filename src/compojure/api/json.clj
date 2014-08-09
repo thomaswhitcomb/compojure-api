@@ -55,13 +55,10 @@
 (defn- serializable?
   "Predicate that returns true whenever the response body is JSON serializable."
   [{:keys [body] :as response}]
-  (when response
-    (or (coll? body)
-        (and (:compojure.api.meta/serializable? response)
-             (not
-               (or
-                 (instance? java.io.File body)
-                 (instance? java.io.InputStream body)))))))
+  (and response
+       (or (coll? body) (:compojure.api.meta/serializable? response))
+       (not (instance? java.io.File body))
+       (not (instance? java.io.InputStream body))))
 
 (defn json-response-support [handler _]
   (fn [request]
