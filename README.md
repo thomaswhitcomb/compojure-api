@@ -1,6 +1,6 @@
 # Compojure-api
 
-[![Build Status](https://travis-ci.org/metosin/compojure-api.png?branch=0.7.0)](https://travis-ci.org/metosin/compojure-api)
+[![Build Status](https://travis-ci.org/metosin/compojure-api.png)](https://travis-ci.org/metosin/compojure-api)
 
 Stuff on top of [Compojure](https://github.com/weavejester/compojure) for making sweet web apis.
 
@@ -11,9 +11,7 @@ Stuff on top of [Compojure](https://github.com/weavejester/compojure) for making
 
 ## Latest version
 
-```clojure
-[metosin/compojure-api "0.14.0"]
-```
+[![Clojars Project](http://clojars.org/metosin/compojure-api/latest-version.svg)](http://clojars.org/metosin/compojure-api)
 
 ## Sample application
 
@@ -287,7 +285,7 @@ you can also wrap models in containers (`vector` and `set`) and add extra metada
 ```clojure
   (POST* "/echos" []
     :return   [Thingie]
-    :body     [thingies #{Thingie} {:description "set on thingies"}]
+    :body     [thingies (describe #{Thingie} "set on thingies")]
     (ok thingies))
 ```
 
@@ -470,14 +468,9 @@ The content negotiation code is in `compojure.api.response-negotiation` and the 
 - collect routes from root, not from `swaggered`
 - type-safe `:params` destructuring
 - `url-for` for endpoints (bidi, bidi, bidi)
-- support for swagger error messages
 - include external common use middlewares (ring-middleware-format, ring-cors etc.)
 - file handling
 - `WS*`?
-
-## Contributing
-
-Pull Requests welcome. Please run the tests (`lein midje`) and make sure they pass before you submit one.
 
 ## License
 
