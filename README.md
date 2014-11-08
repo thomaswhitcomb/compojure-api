@@ -1,6 +1,4 @@
-# Compojure-api
-
-[![Build Status](https://travis-ci.org/metosin/compojure-api.png)](https://travis-ci.org/metosin/compojure-api)
+# Compojure-api [![Build Status](https://travis-ci.org/metosin/compojure-api.png)](https://travis-ci.org/metosin/compojure-api)
 
 Stuff on top of [Compojure](https://github.com/weavejester/compojure) for making sweet web apis.
 
@@ -112,6 +110,10 @@ Clone the [examples-repo](https://github.com/metosin/compojure-api-examples).
 
 Use a Leiningen template: `lein new compojure-api my-api`
 
+## Current (major) issues
+
+* `defroutes*` does not handle swagger-meta-data namespace resolution correctly. One has to import all used namespaces to root api namespace. See https://github.com/metosin/compojure-api/issues/42. `defroutes*` will be rewritten for Swagger 2.0.
+
 # Building Documented Apis
 
 ## Middlewares
@@ -154,9 +156,21 @@ There is also `defapi` as a short form for the common case of defining routes wi
 
 ## Request & response formats
 
-Middlewares (and other handlers) can publish their capabilities to consume & produce different wire-formats. This information is passed to `ring-swagger` and added to swagger-docs & is available in the swagger-ui.
+Middlewares (and other handlers) can publish their capabilities to consume & produce different wire-formats.
+This information is passed to `ring-swagger` and added to swagger-docs & is available in the swagger-ui.
 
-One can add own format middlewares (XML, EDN etc.) and add expose their capabilities by adding the supported content-type into request under keys `[:meta :consumes]` and `[:meta :produces]` accordingly.
+The default middlewares on Compojure-API includes [ring-middleware-format](https://github.com/ngrunwald/ring-middleware-format)
+which supports multiple formats. If the first element of `defapi` body is a map it will be used to pass parameters to
+`api-middleware`, e.g. the formats which should be enabled.
+
+```clojure
+(defapi app
+  {:formats [:transit-json :edn]}
+  (context "/api" [] ...))
+```
+
+One can add own format middlewares (XML etc.) and add expose their capabilities by adding the
+supported content-type into request under keys `[:meta :consumes]` and `[:meta :produces]` accordingly.
 
 ## Routes
 
@@ -371,7 +385,10 @@ Key `:responses` takes a map of http-status-code -> model map, which translates 
 
 ## Route-specific middlewares
 
-Key `:middlewares` takes a vector of middlewares to be applied to the route. Note that the middlewares are wrapped around the route, so they don't see any restructured bindinds from within the route body.
+Key `:middlewares` takes a vector of middlewares to be applied to the route.
+Note that the middlewares don't see any restructured bindinds from within the route body.
+They are executed inside the route so you can safely edit request etc. and the changes
+won't leak to other routes in the same context.
 
 ```clojure
  (DELETE* "/user/:id" []

@@ -1,3 +1,32 @@
+## 0.16.2 (11.9.2014)
+
+- Fixed #47: `:middlewares` broke route parameters
+
+## 0.16.1 (11.9.2014)
+
+- Compiled without AOT
+- Removed `:yaml-in-html` and `:clojure` from default response formats
+
+## 0.16.0 (10.9.2014)
+
+- Some cleaning
+  - Requires now clojure 1.6.0 for `clojure.walk`
+- Support other formats in addition to JSON
+  - Uses the [ring-middleware-format](https://github.com/ngrunwald/ring-middleware-format) to parse requests and encode responses
+- Fixes #43: Middlewares added to route with :middlewares shouldn't leak to other routes in same context anymore
+
+## 0.15.2 (4.9.2014)
+
+- Update to latest `ring-swagger`
+
+## 0.15.1 (19.8.2014)
+
+- Update to latest `ring-swagger`
+  - Fixes #16: If Schema has many properties, they are now shown in correct order on Swagger-UI
+    - `hash-map` loses the order if it has enough properties
+    - Use [flatland.ordered.map/ordered-map](https://github.com/flatland/ordered) when Schema has many properties and you want to keep the order intact
+    - `(s/defschema Thingie (ordered-map :a String ...))`
+
 ## 0.15.0 (10.8.2014)
 
 - Use latest `ring-swagger`

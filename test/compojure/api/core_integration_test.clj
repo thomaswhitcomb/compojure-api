@@ -1,39 +1,50 @@
 (ns compojure.api.core-integration-test
-  (:require [midje.sweet :refer :all]
-            [schema.core :as s]
-            [compojure.api.swagger :as swagger]
-            [ring.util.http-response :refer :all]
-            [peridot.core :as p]
-            [cheshire.core :as cheshire]
-            [compojure.core :as compojure]
+  (:require [cheshire.core :as cheshire]
             [clojure.java.io :as io]
+            [compojure.api.swagger :as swagger]
             [compojure.api.sweet :refer :all]
-            [compojure.api.test-domain :as domain])
+            [compojure.api.test-domain :as domain]
+            [compojure.api.test-utils :refer :all]
+            [compojure.core :as compojure]
+            [midje.sweet :refer :all]
+            [peridot.core :as p]
+            [ring.util.http-response :refer :all]
+            [schema.core :as s])
   (:import [java.io ByteArrayInputStream]))
 
 ;;
 ;; common
 ;;
 
-(defn get* [app uri & [params headers]]
+(defn raw-get* [app uri & [params headers]]
   (let [{{:keys [status body headers]} :response}
         (-> (p/session app)
             (p/request uri
                        :request-method :get
                        :params (or params {})
                        :headers (or headers {})))]
-    [status (cheshire/parse-string body true) headers]))
+    [status (read-body body) headers]))
+
+(defn get* [app uri & [params headers]]
+  (let [[status body headers]
+        (raw-get* app uri params headers)]
+    [status (parse-body body) headers]))
 
 (defn json [x] (cheshire/generate-string x))
 
-(defn post* [app uri & [data]]
+(defn raw-post* [app uri & [data content-type headers]]
   (let [{{:keys [status body]} :response}
         (-> (p/session app)
             (p/request uri
                        :request-method :post
-                       :content-type "application/json"
+                       :headers (or headers {})
+                       :content-type (or content-type "application/json")
                        :body (.getBytes data)))]
-    [status (cheshire/parse-string body true)]))
+    [status (read-body body)]))
+
+(defn post* [app uri & [data]]
+  (let [[status body] (raw-post* app uri data)]
+    [status (parse-body body)]))
 
 ;;
 ;; Data
@@ -63,12 +74,25 @@
           response (handler request)]
       (update-in response [:headers mw*] append))))
 
+(defn constant-middleware
+  "This middleware rewrites all responses with a constant response."
+  [handler & [res]]
+  (fn [request]
+    res))
+
 (defn reply-mw*
   "Handler which replies with response where a header contains copy
    of the headers value from request and 7"
   [request]
   (-> (ok "true")
       (header mw* (str (get-in request [:headers mw*]) 7))))
+
+(defn middleware-x
+  "If request has query-param x, presume it's a integer and multiply it by two
+   before passing request to next handler."
+  [handler]
+  (fn [req]
+    (handler (update-in req [:query-params "x"] #(* (Integer. %) 2)))))
 
 ;;
 ;; Facts
@@ -101,6 +125,40 @@
       status => 200
       (get headers mw*) => "1234567654321")))
 
+(facts "middlewares - multiple routes"
+  (defapi api
+    (swaggered +name+
+      (GET* "/first" []
+        (ok {:value "first"}))
+      (GET* "/second" []
+        :middlewares [(constant-middleware (ok {:value"foo"}))]
+        (ok {:value "second"}))
+      (GET* "/third" []
+        (ok {:value "third"}))))
+  (fact "first returns first"
+    (let [[status body headers] (get* api "/first" {})]
+      status => 200
+      body => {:value "first"}))
+  (fact "second returns foo"
+    (let [[status body headers] (get* api "/second" {})]
+      status => 200
+      body => {:value "foo"}))
+  (fact "third returns third"
+    (let [[status body headers] (get* api "/third" {})]
+      status => 200
+      body => {:value "third"})))
+
+(facts "middlewares - editing request"
+  (defapi api
+    (swaggered +name+
+      (GET* "/first" []
+        :query-params [x :- Long]
+        :middlewares [middleware-x]
+        (ok {:value x}))))
+  (fact "middleware edits the parameter before route body"
+    (let [[status body headers] (get* api "/first?x=5" {})]
+      status => 200
+      body => {:value 10})))
 
 (fact ":body, :query and :return"
   (defapi api
@@ -324,17 +382,18 @@
           (ok "kikka")))))
 
   (fact "when :return is set, longs can be returned"
-    (let [[status body] (get* api "/primitives/return-long")]
+    (let [[status body] (raw-get* api "/primitives/return-long")]
       status => 200
-      body => 1))
+      body => "1"))
 
-  (fact "when :return is not set, longs can't be returned"
-    (get* api "/primitives/long") => (throws Exception))
+  (fact "when :return is not set, longs won't be encoded"
+    (let [[status body] (raw-get* api "/primitives/long")]
+      body => number?))
 
   (fact "when :return is set, raw strings can be returned"
-    (let [[status body] (get* api "/primitives/return-string")]
+    (let [[status body] (raw-get* api "/primitives/return-string")]
       status => 200
-      body => "kikka")))
+      body => "\"kikka\"")))
 
 (fact "compojure destructuring support"
   (defapi api
@@ -388,6 +447,7 @@
 
 (fact "swagger-docs"
   (defapi api
+    {:formats [:json-kw :edn]}
     (swagger-docs)
     (swaggered +name+
       (GET* "/user" []
@@ -407,11 +467,11 @@
       status => 200
       body => {:swaggerVersion "1.2"
                :apiVersion "0.0.1"
-               :resourcePath ""
+               :resourcePath "/"
                :models {}
                :basePath "http://localhost"
-               :consumes ["application/json"]
-               :produces ["application/json"]
+               :consumes ["application/json" "application/edn"]
+               :produces ["application/json" "application/edn"]
                :apis [{:operations [{:method "GET"
                                      :nickname "getUser"
                                      :notes ""
@@ -420,6 +480,25 @@
                                      :summary ""
                                      :type "void"}]
                        :path "/user"}]})))
+
+(fact "swagger-docs works with the :middlewares"
+  (defapi api
+    (swagger-docs)
+    (swaggered +name+
+      (GET* "/middleware" []
+        :query-params [x :- String]
+        :middlewares [(constant-middleware (ok 1))]
+        (ok 2))))
+
+  (fact "api-docs"
+    (let [[status body] (get* api (str "/api/api-docs/" +name+) {})]
+      status => 200
+      (-> body  :apis first :operations first :parameters first) =>
+      {:description ""
+       :name "x"
+       :paramType "query"
+       :required true
+       :type "string"})))
 
 (fact "sub-context paths"
   (let [response {:ping "pong"}
@@ -465,3 +544,31 @@
       (->> body
            :apis
            (map :path)) => ["/" "/a" "/b/b1" "/b" "/b//b2"]))))
+
+(fact "formats supported by ring-middleware-format"
+  (defapi api
+    (swaggered +name+
+      (POST* "/echo" []
+        :body-params [foo :- String]
+        (ok {:foo foo}))))
+
+  (tabular
+    (facts
+      (fact {:midje/description (str ?content-type " to json")}
+        (let [[status body headers]
+              (raw-post* api "/echo" ?body ?content-type {:accept "application/json"})]
+          status => 200
+          body => "{\"foo\":\"bar\"}"))
+      (fact {:midje/description (str "json to " ?content-type)}
+        (let [[status body headers]
+              (raw-post* api "/echo" "{\"foo\":\"bar\"}" "application/json" {:accept ?content-type})]
+          status => 200
+          body => ?body)))
+
+    ?content-type ?body
+    "application/json" "{\"foo\":\"bar\"}"
+    "application/x-yaml" "{foo: bar}\n"
+    "application/edn" "{:foo \"bar\"}"
+    ;; FIXME: Broken on ring-middleware-format 0.4.0, waiting for fix to be merged
+    ; "application/transit+json" "[\"^ \",\"~:foo\",\"bar\"]"
+    ))
